@@ -18,7 +18,6 @@ class ContextManager {
 
     if (!this.browsers[browserName]) {
       this.browsers[browserName] = await engine.launch({
-        headless: false,
         args: browserName === 'chromium' ? ['--start-maximized'] : [],
       });
     }
