@@ -1,0 +1,67 @@
+const { test, expect } = require('@playwright/test');
+const ContextManager = require('../src/utils/ContextManager');
+const POMManager = require('../src/common/POMManager');
+const { time } = require('node:console');
+
+test.describe('Login Flow Tests', () => {
+
+    test.describe.configure({ mode: 'serial' });
+
+    let page;
+    let pomManager;
+    let browserName;
+
+    test.beforeAll(async ({ browserName: browserName }) => {
+        const context = await ContextManager.init(browserName);
+        page = await context.newPage();
+        pomManager = new POMManager(page);
+    });
+
+    test.afterEach(async () => {
+        await page.screenshot({
+            path: `screenshots/${Date.now()}_screenshot.png`,
+            fullPage: true
+        });
+    });
+
+    test.afterAll(async () => {
+        await page.close();
+        await ContextManager.tearDown(browserName);
+    });
+
+    test('Validate navigation to Login Page', async () => {
+        await test.step('Navigate to Home Page', async () => {
+            const homePage = pomManager.getHomePage();
+            await homePage.navigateToHomePage();
+        });
+
+        await test.step('Verify Home Page URL', async () => {
+            const homePage = pomManager.getHomePage();
+            await homePage.verifyHomePageURL();
+        });
+
+        await test.step('Validate Home Page Title', async () => {
+            const homePage = pomManager.getHomePage();
+            await homePage.validateHomePageTitle();
+        });
+    });
+
+    test('Perform Login', async () => {
+        await test.step('Login with saved credentials', async () => {
+            const loginPage = pomManager.getLoginPage();
+            await loginPage.login();
+        });
+
+        await test.step('Wait for page transition', async () => {
+            await page.waitForTimeout(10000);
+        });
+
+        await test.step('Take final screenshot', async () => {
+            await page.screenshot({
+                path: `screenshots/${Date.now()}_login_success.png`,
+                fullPage: true
+            });
+        });
+    });
+
+});
