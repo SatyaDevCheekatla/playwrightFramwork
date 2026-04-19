@@ -1,7 +1,14 @@
 const { test, expect } = require('@playwright/test');
 const ContextManager = require('../src/utils/ContextManager');
 const POMManager = require('../src/common/POMManager');
-const { time } = require('node:console');
+const fs = require('fs');
+const path = require('path');
+
+// Ensure screenshots directory exists
+const screenshotsDir = path.join(__dirname, '../screenshots');
+if (!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir, { recursive: true });
+}
 
 test.describe('Login Flow Tests', () => {
 
@@ -11,22 +18,31 @@ test.describe('Login Flow Tests', () => {
     let pomManager;
     let browserName;
 
-    test.beforeAll(async ({ browserName: browserName }) => {
-        const context = await ContextManager.init(browserName);
-        page = await context.newPage();
-        pomManager = new POMManager(page);
+    test.beforeEach(async ({ browserName: bn }) => {
+        if (!page) {
+            browserName = bn;
+            const context = await ContextManager.init(browserName);
+            page = await context.newPage();
+            pomManager = new POMManager(page);
+        }
     });
 
     test.afterEach(async () => {
-        await page.screenshot({
-            path: `screenshots/${Date.now()}_screenshot.png`,
-            fullPage: true
-        });
+        if (page) {
+            await page.screenshot({
+                path: `screenshots/${Date.now()}_screenshot.png`,
+                fullPage: true
+            }).catch(err => console.log('Screenshot failed:', err.message));
+        }
     });
 
     test.afterAll(async () => {
-        await page.close();
-        await ContextManager.tearDown(browserName);
+        if (page) {
+            await page.close().catch(() => {});
+        }
+        if (browserName) {
+            await ContextManager.tearDown(browserName).catch(() => {});
+        }
     });
 
     test('Validate navigation to Login Page', async () => {

@@ -6,6 +6,12 @@ const path = require('path');
 
 const CREDENTIALS_PATH = path.join(__dirname, '../resources/testdata.json');
 
+// Ensure screenshots directory exists
+const screenshotsDir = path.join(__dirname, '../screenshots');
+if (!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir, { recursive: true });
+}
+
 test.describe('Registration Tests', () => {
 
     test.describe.configure({ mode: 'serial' });
@@ -16,17 +22,28 @@ test.describe('Registration Tests', () => {
     let testData = {};
     let browserName;
 
-    test.beforeAll(async ({ browserName: bn }) => {
-        browserName = bn;
-        const context = await ContextManager.init(browserName);
-        page = await context.newPage();
-        pomManager = new POMManager(page);
+    test.beforeEach(async ({ browserName: bn }) => {
+        if (!page) {
+            browserName = bn;
+            const context = await ContextManager.init(browserName);
+            page = await context.newPage();
+            pomManager = new POMManager(page);
+        }
     });
 
     test.afterAll(async () => {
-        fs.writeFileSync(CREDENTIALS_PATH, JSON.stringify(testData, null, 2));
-        console.log('Saved test data:', testData);
-        await ContextManager.tearDown(browserName);
+        try {
+            fs.writeFileSync(CREDENTIALS_PATH, JSON.stringify(testData, null, 2));
+            console.log('Saved test data:', testData);
+        } catch (err) {
+            console.log('Failed to save test data:', err.message);
+        }
+        if (browserName) {
+            await ContextManager.tearDown(browserName).catch(() => {});
+        }
+        if (page) {
+            await page.close().catch(() => {});
+        }
     });
 
     test('Validate Home Page', async () => {
